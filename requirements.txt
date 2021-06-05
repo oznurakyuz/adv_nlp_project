@@ -1,1 +1,5 @@
 zeyrek~=0.1.2
+Keras==2.4.3
+numpy==1.19.5
+tensorflow==2.5.0
+gensim==3.8.3
