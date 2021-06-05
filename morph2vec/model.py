@@ -2,17 +2,10 @@ import codecs
 import os
 import sys
 
-import numpy as np
-from gensim.models import fasttext
-from keras import Input
-from keras.layers import Embedding, Bidirectional, LSTM
-from keras.preprocessing import sequence
 import keras.backend as K
-import numpy
-# from keras.engine import Model
+import numpy as np
 import tensorflow as tf
-import gensim
-from gensim.models import FastText
+from gensim.models import fasttext
 from keras import regularizers
 from keras.layers import Input
 from keras.layers.core import Dense, Lambda, Reshape, Masking
@@ -21,10 +14,9 @@ from keras.layers.merge import concatenate
 from keras.layers.recurrent import LSTM
 from keras.layers.wrappers import TimeDistributed, Bidirectional
 from keras.preprocessing import sequence
-from keras import losses
 
 number_of_segmentation = 10  # args.segNo
-batch_size = 256  # args.batch
+batch_size = 32  # args.batch
 number_of_epoch = 5  # args.epoch
 dim = 300  # args.dim
 
@@ -120,7 +112,7 @@ def attn_merge(inputs, mask):
     logits = inputs[1]
     # Flatten the logits and take a softmax
     logits = K.squeeze(logits, axis=2)
-    pre_softmax = K.switch(mask[0], logits, -numpy.inf)
+    pre_softmax = K.switch(mask[0], logits, -np.inf)
     weights = K.expand_dims(K.softmax(pre_softmax))
     return K.sum(vectors * weights, axis=1)
 
@@ -128,15 +120,18 @@ def attn_merge(inputs, mask):
 def attn_merge_shape(input_shapes):
     return input_shapes[0][0], input_shapes[0][2]
 
+
 attn = Lambda(attn_merge, output_shape=attn_merge_shape)
 attn.supports_masking = True
 attn.compute_mask = lambda inputs, mask: None
 content_flat = attn([seq_output, attention_2])
 
+
 def cosine_proximity(y_true, y_pred):
     y_true = K.l2_normalize(y_true, axis=-1)
     y_pred = K.l2_normalize(y_pred, axis=-1)
     return -K.mean(y_true * y_pred, axis=-1)
+
 
 model = tf.keras.Model(inputs=morph_seg, outputs=content_flat)
 
