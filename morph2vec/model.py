@@ -17,15 +17,15 @@ from keras.preprocessing import sequence
 
 number_of_segmentation = 10  # args.segNo
 batch_size = 32  # args.batch
-number_of_epoch = 5  # args.epoch
+number_of_epoch = 25  # args.epoch
 dim = 300  # args.dim
 
 gensim_model = "../vectors/cc.tr.300.bin"  # args.wordVector
-training_file = "../data_resource/training.tr"  # args.input
-output_file = "../output/model.pk"  # args.output
+training_file = "../data_resource/structured_news_10segment.txt"  # args.input
+output_file = "../output/model_news.h5"  # args.output
 
-if not os.path.exists(output_file):
-    os.makedirs(output_file)
+if not os.path.exists("../output/"):
+    os.makedirs("../output/")
 
 print('==========  Prepare data...  ==========')
 word2sgmt = {}

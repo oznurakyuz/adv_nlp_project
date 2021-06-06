@@ -1,8 +1,11 @@
+import itertools
 import os
 import re
 from typing import List, Tuple, Any
 
+import conllu
 import zeyrek
+from tqdm import tqdm
 
 from string_utils import remove_punctuation, remove_repeating_spaces, filter_allowed_characters, to_lower
 
@@ -28,7 +31,7 @@ def converter(analysis: List) -> tuple[Any, tuple[Any, ...]]:
 def morphomize(str_: str) -> Tuple:
     str_ = to_lower(str_)
     str_ = filter_allowed_characters(str_)
-    analysis = MORPH_ANALYZER.analyze(str_)  # {analysis[0].word}
+    analysis = MORPH_ANALYZER.analyze(str_)
     analysis = tuple(filter(None, map(converter, filter(len, analysis))))
     return analysis
 
@@ -42,12 +45,12 @@ def save_raw_data(corpus_chunk, file_name="raw_corpus"):
         file.write("\n")
 
 
-def save_structured_data(max_segmentation_length, read_file="raw_corpus", write_file="structured_corpus"):
+def save_structured_data(max_segmentation_length, chunk_size, read_file="raw_corpus", write_file="structured_corpus"):
     if not os.path.exists(DATA_PATH):
         os.makedirs(DATA_PATH)
 
+    processed = list()
     with open(f"{DATA_PATH}/{read_file}.txt", "r", encoding="utf-8") as rfile:
-        processed = list()
         for line in rfile:
             line = line.strip()
             word, morphemes = line.split(":")
@@ -56,30 +59,38 @@ def save_structured_data(max_segmentation_length, read_file="raw_corpus", write_
             morphemes.append("-".join(list(word)))
             processed.append(f"{word}:{'+'.join(morphemes)}")
 
-            if len(processed) % 5 == 0:
+            if len(processed) % chunk_size == 0:
                 with open(f"{DATA_PATH}/{write_file}_{max_segmentation_length}segment.txt", "a+",
                           encoding="utf-8") as wfile:
                     wfile.write("\n".join(processed))
                     wfile.write("\n")
+                    processed = list()
+        else:
+            with open(f"{DATA_PATH}/{write_file}_{max_segmentation_length}segment.txt", "a+",
+                      encoding="utf-8") as wfile:
+                wfile.write("\n".join(processed))
+                wfile.write("\n")
 
 
 if __name__ == "__main__":
     # todo initialize corpus when datasets are obtained.
-    corpus = [
-        'benim geleceğim',
-        'iyi bir fikir olmayabilir',
-        'en çok okunan',
-        'Şemdinli de çatışma: 5 şehit Hakkari nin Şemdinli ilçesine bağlı ortaklar köyü kırsalında çıkan çatışmada 5 asker şehit oldu 1 asker yaralandı'
-    ]
-    chunk_size = 2
-    max_segmentation_length = 10
-    # for i in range(0, len(corpus), chunk_size):
-    #     corpus_chunk = set(itertools.chain(*map(morphomize, corpus[i:i + chunk_size])))
-    #     if len(corpus_chunk):
-    #         segmentation_length = len(max(corpus_chunk, key=lambda l: len(l[1]))[1])
-    #         if segmentation_length > max_segmentation_length:
-    #             max_segmentation_length = segmentation_length
-    #         print(f"processed {i + chunk_size}/{len(corpus)} ")
-    #         save_raw_data(corpus_chunk)
+    vocab = set()
+    data_files = ["turkish-ner-train.conllu", "turkish-ner-dev.conllu", "turkish-ner-test.conllu"]
+    for data_file in data_files:
+        data_file = open(f"{DATA_PATH}/datasets/{data_file}", "r", encoding="utf-8")
+        for tokenlist in tqdm(conllu.parse_incr(data_file)):
+            vocab.update([str(token) for token in tokenlist])
 
-    save_structured_data(max_segmentation_length, read_file="raw_corpus")
+    vocab = list(vocab)
+    chunk_size = 1000
+    max_segmentation_length = 10
+    for i in tqdm(range(0, len(vocab), chunk_size)):
+        corpus_chunk = set(itertools.chain(*map(morphomize, vocab[i:i + chunk_size])))
+        if len(corpus_chunk):
+            segmentation_length = len(max(corpus_chunk, key=lambda l: len(l[1]))[1])
+            if segmentation_length > max_segmentation_length:
+                max_segmentation_length = segmentation_length
+            print(f"processed {i + chunk_size}/{len(vocab)} max_segmentation_length: {max_segmentation_length}")
+            save_raw_data(corpus_chunk, file_name="raw_news")
+
+    save_structured_data(max_segmentation_length, chunk_size, read_file="raw_news", write_file="structured_news")
