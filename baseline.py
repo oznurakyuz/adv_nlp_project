@@ -12,7 +12,9 @@ from future.utils import iteritems
 import matplotlib.pyplot as plt
 from seqeval.metrics import precision_score, recall_score, f1_score, classification_report
 from  sklearn_crfsuite.metrics import flat_classification_report
+import string
 
+punc = string.punctuation
 
 def utilData(path):
     datal = open(path).readlines()
