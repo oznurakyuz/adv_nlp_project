@@ -28,7 +28,7 @@ def utilData(path):
             sentence=[]
         else:
             a=0
-            while a< len(data):
+            while a< len(data) and data[1] not in punc:
                 token=data[a]
                 if token in taglist:
                     tag=token[1:-2]
@@ -84,10 +84,10 @@ y_train= y[0:25513]
 y_dev=y[25514:28468]
 y_test=y[28469:]
 
-input = Input(shape=(152,))
+input = Input(shape=(maxlen,))
 word_embedding_size = 100
 
-model = Embedding(input_dim=n_words, output_dim=word_embedding_size, input_length=152)(input)
+model = Embedding(input_dim=n_words, output_dim=word_embedding_size, input_length=maxlen)(input)
 
 model = Bidirectional(LSTM(units=64,
                            return_sequences=True,
