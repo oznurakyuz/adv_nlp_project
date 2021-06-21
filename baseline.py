@@ -1,58 +1,59 @@
+import string
 
+import keras as k
+import matplotlib.pyplot as plt
+import numpy as np
+from future.utils import iteritems
+from keras import optimizers
+from keras.callbacks import ModelCheckpoint
+from keras.layers import LSTM, Embedding, Dense, TimeDistributed, Bidirectional
+from keras.models import Model, Input
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils import to_categorical
-from keras.models import Model, Input
-from keras.layers import LSTM, Embedding, Dense, TimeDistributed, Dropout, Bidirectional
-import keras as k
 from keras_contrib.layers import CRF
-from keras.callbacks import ModelCheckpoint
-import numpy as np
-from keras import optimizers
-from future.utils import iteritems
-import matplotlib.pyplot as plt
-from seqeval.metrics import precision_score, recall_score, f1_score, classification_report
-from  sklearn_crfsuite.metrics import flat_classification_report
-import string
+from seqeval.metrics import f1_score
+from sklearn_crfsuite.metrics import flat_classification_report
 
 punc = string.punctuation
 
+
 def utilData(path):
     datal = open(path).readlines()
-    taglist=["\"I-PER\",","\"I-LOC\",","\"I-ORG\",","\"B-PER\",","\"B-LOC\",","\"B-ORG\","]
-    sentence=[]
-    taggedSentences=[]
+    taglist = ["\"I-PER\",", "\"I-LOC\",", "\"I-ORG\",", "\"B-PER\",", "\"B-LOC\",", "\"B-ORG\","]
+    sentence = []
+    taggedSentences = []
     words = []
     tags = []
     for datax in datal:
-        data=datax.split()
-        if len(data)==0:
+        data = datax.split()
+        if len(data) == 0:
             taggedSentences.append(sentence)
-            sentence=[]
+            sentence = []
         else:
-            a=0
-            while a< len(data) and data[1] not in punc:
-                token=data[a]
+            a = 0
+            while a < len(data) and data[1] not in punc:
+                token = data[a]
                 if token == '"O",':
-                    tag= token[1:-2]
-                    a+=1
-                    token=data[1].lower()
+                    tag = token[1:-2]
+                    a += 1
+                    token = data[1].lower()
                     words.append(token)
                     tags.append(tag)
-                    taggedToken =(token,tag)
+                    taggedToken = (token, tag)
                     sentence.append(taggedToken)
                 elif token in taglist:
-                    if len(tags) >0 and ((tags[-1][2:5] == 'PER' or tags[-1][2:5] == 'LOC' or tags[-1][2:5] =='ORG')):
+                    if len(tags) > 0 and ((tags[-1][2:5] == 'PER' or tags[-1][2:5] == 'LOC' or tags[-1][2:5] == 'ORG')):
                         tag = token[1:-2]
                     else:
-                        tag= "B-"+token[3:-2]
-                    a+=1
-                    token=data[1].lower()
+                        tag = "B-" + token[3:-2]
+                    a += 1
+                    token = data[1].lower()
                     words.append(token)
                     tags.append(tag)
-                    taggedToken =(token,tag)
+                    taggedToken = (token, tag)
                     sentence.append(taggedToken)
                 else:
-                    a+= 1
+                    a += 1
 
     print(taggedSentences[1:3])
     wordsSet = list(set(words))
@@ -72,30 +73,32 @@ def utilData(path):
     idx2tag = {v: k for k, v in iteritems(tag2idx)}
     return n_words, n_tags, word2idx, tag2idx, idx2tag, taggedSentences
 
-n_words, n_tags, word2idx, tag2idx, idx2tag, taggedSentences = utilData("/home/someone/Desktop/cmpe58t/dataset NER/datasets/allData.conllu")
-#n_words, n_tags, word2idx, tag2idx, idx2tag, taggedSentences = utilData("/home/someone/Desktop/cmpe58t/dataset NER/datasets/turkish-ner-train.conllu")
-#n_words, n_tags, word2idx, tag2idx, idx2tag, taggedSentences = utilData("/home/someone/Desktop/cmpe58t/dataset NER/datasets/turkish-ner-test.conllu")
+
+n_words, n_tags, word2idx, tag2idx, idx2tag, taggedSentences = utilData(
+    "/home/someone/Desktop/cmpe58t/dataset NER/datasets/allData.conllu")
+# n_words, n_tags, word2idx, tag2idx, idx2tag, taggedSentences = utilData("/home/someone/Desktop/cmpe58t/dataset NER/datasets/turkish-ner-train.conllu")
+# n_words, n_tags, word2idx, tag2idx, idx2tag, taggedSentences = utilData("/home/someone/Desktop/cmpe58t/dataset NER/datasets/turkish-ner-test.conllu")
 
 
 maxlen = max([len(s) for s in taggedSentences])
 
 X = [[word2idx[w[0]] for w in s] for s in taggedSentences]
-X = pad_sequences(maxlen=maxlen, sequences=X, padding="post",value=n_words - 1)
+X = pad_sequences(maxlen=maxlen, sequences=X, padding="post", value=n_words - 1)
 
-x_split1=X[0:10]
-x_split2=X[:-100]
+x_split1 = X[0:10]
+x_split2 = X[:-100]
 
 y = [[tag2idx[w[1]] for w in s] for s in taggedSentences]
 y = pad_sequences(maxlen=maxlen, sequences=y, padding="post", value=tag2idx["O"])
 y = [to_categorical(i, num_classes=n_tags) for i in y]
 
-X_train= X[0:25513]
-X_dev=X[25514:28468]
-X_test=X[28469:]
+X_train = X[0:25513]
+X_dev = X[25514:28468]
+X_test = X[28469:]
 
-y_train= y[0:25513]
-y_dev=y[25514:28468]
-y_test=y[28469:]
+y_train = y[0:25513]
+y_dev = y[25514:28468]
+y_test = y[28469:]
 
 print("maxlen", maxlen)
 input = Input(shape=(maxlen,))
@@ -127,17 +130,19 @@ adam = optimizers.Adam(lr=0.0005, beta_1=0.9, beta_2=0.999)
 model.compile(optimizer=adam, loss=crf.loss_function, metrics=[crf.accuracy, 'accuracy'])
 model.summary()
 
-filepath="ner-bi-lstm-td-model-{val_accuracy:.2f}.hdf5"
+filepath = "ner-bi-lstm-td-model-{val_accuracy:.2f}.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
 callbacks_list = [checkpoint]
 
-history = model.fit(X_train, np.array(y_train), batch_size=256, epochs=1,validation_data=(X_dev,np.array(y_dev)), verbose=1)
+history = model.fit(X_train, np.array(y_train), batch_size=256, epochs=1, validation_data=(X_dev, np.array(y_dev)),
+                    verbose=1)
 
 plt.style.use('ggplot')
 
+
 def plot_history(history):
-    accuracy = history.history['accuracy']
-    val_accuracy = history.history['val_accuracy']
+    accuracy = history.history['crf_viterbi_accuracy']
+    val_accuracy = history.history['val_crf_viterbi_accuracy']
     loss = history.history['loss']
     val_loss = history.history['val_loss']
     x = range(1, len(accuracy) + 1)
@@ -155,7 +160,9 @@ def plot_history(history):
     plt.legend()
     plt.savefig('dev_epoch40_plot.png')
 
+
 plot_history(history)
+
 
 def pred2label(pred):
     out = []
@@ -166,6 +173,8 @@ def pred2label(pred):
             out_i.append(idx2tag[p_i])
         out.append(out_i)
     return out
+
+
 test_pred = model.predict(X_test, verbose=1)
 pred_labels = pred2label(test_pred)
 test_labels = pred2label(y_test)

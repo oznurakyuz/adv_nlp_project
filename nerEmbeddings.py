@@ -164,8 +164,8 @@ history = model.fit(X_train, np.array(y_train), batch_size=128, epochs=40,valida
 plt.style.use('ggplot')
 
 def plot_history(history):
-    accuracy = history.history['accuracy']
-    val_accuracy = history.history['val_accuracy']
+    accuracy = history.history['crf_viterbi_accuracy']
+    val_accuracy = history.history['val_crf_viterbi_accuracy']
     loss = history.history['loss']
     val_loss = history.history['val_loss']
     x = range(1, len(accuracy) + 1)
