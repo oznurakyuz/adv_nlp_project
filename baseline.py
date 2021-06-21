@@ -18,7 +18,7 @@ punc = string.punctuation
 
 def utilData(path):
     datal = open(path).readlines()
-    taglist=["\"I-PER\",","\"I-LOC\",","\"I-ORG\",","\"B-PER\",","\"B-LOC\",","\"B-ORG\",","\"O\","]
+    taglist=["\"I-PER\",","\"I-LOC\",","\"I-ORG\",","\"B-PER\",","\"B-LOC\",","\"B-ORG\","]
     sentence=[]
     taggedSentences=[]
     words = []
@@ -32,10 +32,21 @@ def utilData(path):
             a=0
             while a< len(data) and data[1] not in punc:
                 token=data[a]
-                if token in taglist:
-                    tag=token[1:-2]
+                if token == '"O",':
+                    tag= token[1:-2]
                     a+=1
-                    token=data[1]
+                    token=data[1].lower()
+                    words.append(token)
+                    tags.append(tag)
+                    taggedToken =(token,tag)
+                    sentence.append(taggedToken)
+                elif token in taglist:
+                    if len(tags) >0 and ((tags[-1][2:5] == 'PER' or tags[-1][2:5] == 'LOC' or tags[-1][2:5] =='ORG')):
+                        tag = token[1:-2]
+                    else:
+                        tag= "B-"+token[3:-2]
+                    a+=1
+                    token=data[1].lower()
                     words.append(token)
                     tags.append(tag)
                     taggedToken =(token,tag)
@@ -86,6 +97,7 @@ y_train= y[0:25513]
 y_dev=y[25514:28468]
 y_test=y[28469:]
 
+print("maxlen", maxlen)
 input = Input(shape=(maxlen,))
 word_embedding_size = 100
 
@@ -119,7 +131,7 @@ filepath="ner-bi-lstm-td-model-{val_accuracy:.2f}.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
 callbacks_list = [checkpoint]
 
-history = model.fit(X_train, np.array(y_train), batch_size=256, epochs=40,validation_data=(X_dev,np.array(y_dev)), verbose=1)
+history = model.fit(X_train, np.array(y_train), batch_size=256, epochs=1,validation_data=(X_dev,np.array(y_dev)), verbose=1)
 
 plt.style.use('ggplot')
 
