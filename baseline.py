@@ -100,7 +100,6 @@ y_train = y[0:25513]
 y_dev = y[25514:28468]
 y_test = y[28469:]
 
-print("maxlen", maxlen)
 input = Input(shape=(maxlen,))
 word_embedding_size = 100
 
@@ -134,7 +133,7 @@ filepath = "ner-bi-lstm-td-model-{val_accuracy:.2f}.hdf5"
 checkpoint = ModelCheckpoint(filepath, monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
 callbacks_list = [checkpoint]
 
-history = model.fit(X_train, np.array(y_train), batch_size=256, epochs=1, validation_data=(X_dev, np.array(y_dev)),
+history = model.fit(X_train, np.array(y_train), batch_size=128, epochs=40, validation_data=(X_dev, np.array(y_dev)),
                     verbose=1)
 
 plt.style.use('ggplot')
